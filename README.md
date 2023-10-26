@@ -28,6 +28,81 @@ These programs are collectively responsible for:
 
 - **Safety Systems:** Implement safety features like redundancy and system diagnostics.
 
+## Battery Management
+
+The BatteryECU consists of a set of sensors and drivers that communicate battery data and regulate cooling based on external settings determined by CAN-BUS data. The BatteryECU is one of two main data senders which can be easily found by masking and filtering the first 3 bits of the 11-bit address. 
+
+```
+  canMsg1.data[0] = int(bms.get.packVoltage);
+  canMsg1.data[1] = decimal(bms.get.packVoltage);
+  canMsg1.data[2] = int(bms.get.packSOC);
+  canMsg1.data[3] = decimal(bms.get.packSOC);
+  canMsg1.data[4] = int(bms.get.packCurrent * 0.1);
+  canMsg1.data[5] = int(int(bms.get.packCurrent* 0.1) * 100 - bms.get.packCurrent * 100);
+  canMsg1.data[6] = bms.get.resCapacitymAh;
+  canMsg1.data[7] = inbuf[0];
+  for(int i = 0; i < 8; i++){
+    canMsg2.data[i] = int(bms.get.cellVmV[i]) * 0.1 - 200;
+  }
+  for(int i = 0; i < 8; i++){
+    canMsg3.data[i] = int(bms.get.cellVmV[i+8]) * 0.1 - 200;
+  }
+  for(int i = 0; i < 5; i++){
+    canMsg4.data[i] = int(bms.get.cellVmV[i+16]) * 0.1 - 200;
+  }
+```
+
+## Motor Control
+
+The inverter is controlled by an internal 32-bit ARM processor and is externally controlled by another 32-bit ARM processor in the form of RP2040. The internal processor's purpose is simply to regulate the frequency of the 3-phase motor power with data from various sensors. The pedal can transfer the signal directly to the internal processor or to the external processor which regulates the power based on external parameters and displays the data being transferred via CAN-BUS. This system introduces redundancy and allows the car to still function in a degraded state even in the case of complete system failure. 
+
+```
+  limit = analogRead(pot); 
+  limitPercent = int(limit / 1023.0 * 100);
+  throttle = analogRead(INSIG);
+  throttlePercent = int(throttle / 1023.0 * 100);
+  output = analogRead(OUTSIG);
+  outputPercent = int(output / 1023.0 * 100);
+  switch(gear){
+    case 0:
+      digitalWrite(PB3,0);
+      break;
+    case 1:
+      digitalWrite(PB3,1);
+      dac.setVoltage(throttle * 0.5, false);
+      if(analogRead(OUTSIG) > (throttle * 0.5 + 100)){ digitalWrite(PB3,0) };
+      break;
+    case 2:
+      digitalWrite(PB3,1);
+      if(throttle > limit) throttle = limit; 
+      dac.setVoltage(throttle * 4, false);
+      break;
+  }
+```
+
+## Temperature Control
+
+Temperatures are regulated by settings set on the dashboard Auxiliary ECU which are relayed to peripherals via I2c to manage the data and create a PWM signal to control various fans and pumps located around the car to provide adequate cooling.
+```
+  Wire1.beginTransmission(0x69);
+  Wire1.write(0xB1);
+  for(int i = 0; i <30;i++){
+    Wire1.write(buf1[i]);
+  }
+  Wire1.endTransmission();
+  Wire1.beginTransmission(0x69);
+  Wire1.write(0xB2);
+  for(int i = 0; i <30;i++){
+    Wire1.write(buf2[i]);
+  }
+  Wire1.endTransmission();
+  Wire1.beginTransmission(0x69);
+  Wire1.write(0xB3);
+  for(int i = 0; i <30;i++){
+    Wire1.write(buf3[i]);
+  }
+  Wire1.endTransmission();
+```
 
 ## Auxiliary Systems
 
@@ -128,21 +203,28 @@ The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD t
 ```
 
 The ESP32 itself is also responsible for triggering the lights around the cars based on the hand levers and displaying any diagnostic data based on data from the CAN-BUS. 
+
+## Sensor Data
+
+Data is collected from an array of thermistors, ultrasonic sensors, and 
 ```
-  volatile bool a = digitalRead(leftTurn);
-  volatile bool b = digitalRead(rightTurn);
-  if(a||b){
-    counter++;
-    if(counter < 500){
-      if(a)digitalWrite(leftLight,HIGH);
-      if(b)digitalWrite(rightLight,HIGH);
-    }
-    else if(counter < 1000){
-      digitalWrite(leftLight,LOW);
-      digitalWrite(rightLight,LOW);
-    }
-    else counter = 0; 
-  }
+  SonarSensor(trigPin1, echoPin1);
+  Sensor1 = distance;
+  SonarSensor(trigPin2, echoPin2);
+  Sensor2 = distance;
+  SonarSensor(trigPin3, echoPin3);
+  Sensor3 = distance;
+  SonarSensor(trigPin4, echoPin4);
+  Sensor4 = distance;
+  canMsg1.data[0] = (Sensor2 >> 8) & 0xFF;
+  canMsg1.data[1] = Sensor2 & 0xFF;
+  canMsg1.data[2] = (Sensor1 >> 8) & 0xFF;
+  canMsg1.data[3] = Sensor1 & 0xFF;
+  canMsg1.data[4] = (Sensor4 >> 8) & 0xFF;
+  canMsg1.data[5] = Sensor4 & 0xFF;
+  canMsg1.data[6] = (Sensor3 >> 8) & 0xFF;
+  canMsg1.data[7] = Sensor3 & 0xFF;
+
 ```
 
 
