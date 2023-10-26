@@ -1,7 +1,5 @@
 # Electric Car Software System
 
-## Overview
-
 This GitHub repository contains the software for my electric car control system. The purpose of this project is to create various software programs that manage aspects of the car including battery management, motor control, temperature control, cameras, sensors, communication lines, redundancy, and user interface.
 
 ## Table of Contents
