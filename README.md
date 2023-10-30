@@ -103,7 +103,7 @@ Temperatures are regulated by settings set on the dashboard Auxiliary ECU which 
   }
   Wire1.endTransmission();
 ```
-
+![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag1.png)
 ## Auxiliary Systems
 
 Auxiliary systems control the dashboard and its 7 LED displays, 5 LED strips, 6 LCDs, 9 inputs, and the 8 main signal lights and headlights. This system of 1 RP2040, 3 ATMEGA328PBs, 1 ESP32, and 1 ATMEGA2560 communicates with I2c, UART, and CAN bus. 
