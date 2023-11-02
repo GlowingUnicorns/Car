@@ -12,7 +12,7 @@ This GitHub repository contains the software for my electric car control system.
 
 ## Overview
 
-![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag5.png)
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag5.png)
 
 
 These programs are collectively responsible for:
@@ -33,7 +33,7 @@ These programs are collectively responsible for:
 
 The five main modules are the Battery system, Motor System, Auxiliary System, Secondary System, and Interface System, which are responsible for battery regulation, motor control, main data display, secondary data display, and a centralized monitor respectively.
 
-![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag4.png)
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag4.png)
 
 
 ## Battery Management
@@ -116,7 +116,7 @@ Data is collected from an array of thermistors, ultrasonic sensors, and ADCs, wh
 
 Auxiliary systems control the dashboard and its 7 LED displays, 5 LED strips, 6 LCDs, 9 inputs, and the 8 main signal lights and headlights. This system of 1 RP2040, 3 ATMEGA328PBs, 1 ESP32, and 1 ATMEGA2560 communicates with I2c, UART, and CAN bus. 
 
-![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag3.png)
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag6.png)
 
 The RP2040 uses an intermediate Atmega chip through I2c as a buffer as it sends data to update the screens and potentiometer inputs which control the temperatures. 
 
@@ -185,7 +185,56 @@ The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD t
 
 The ESP32 itself is also responsible for triggering the lights around the cars based on the hand levers and displaying any diagnostic data based on data from the CAN-BUS. 
 
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag3.png)
 
+## Interface System
+
+The main display located in the center of the dashboard is controlled by a Raspberry Pi 4. 
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag7.png)
+
+This system includes systems to prevent data corruption on shutdown by using ultra-capacitors. Data is fed into it by a peripheral Teensy 4.0 that decodes the CAN-BUS and converts it to a buffer sent via SPI. 
+
+The GUI's framework is designed on the openCV python library, which uses uploaded images to modify the displayed BGR array. 
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag2.png)
+
+Photoshop drawing of the outline ultimately used for the battery diagram.
+
+To conserve processing power, functions are used to create on-screen objects when possible, and the screen is split into seperate arrays which are stacked for the final process.
+```
+        if(proximityData[0] < 5.5): COLOR = CYAN
+        else: COLOR = WHITE
+        cv2.fillPoly(frame, pts=[pointsLL], color=COLOR)
+        cv2.putText(frame,str(proximityData[0]) + "m" ,proximityLocations[0],font,2,COLOR,2,cv2.LINE_AA)
+        if(proximityData[1] < 5.5): COLOR = CYAN
+        else: COLOR = WHITE
+        cv2.fillPoly(frame, pts=[pointsL], color=COLOR)
+        cv2.putText(frame,str(proximityData[1]) + "m" ,proximityLocations[1],font,2,COLOR,2,cv2.LINE_AA)
+        if(proximityData[2] < 5.5): COLOR = CYAN
+        else: COLOR = WHITE
+        cv2.fillPoly(frame, pts=[pointsR], color=COLOR)
+        cv2.putText(frame,str(proximityData[2]) + "m" ,proximityLocations[2],font,2,COLOR,2,cv2.LINE_AA)
+        if(proximityData[3] < 5.5): COLOR = CYAN
+        else: COLOR = WHITE
+        cv2.fillPoly(frame, pts=[pointsRR], color=COLOR)
+        cv2.putText(frame,str(proximityData[3]) + "m" ,proximityLocations[3],font,2,COLOR,2,cv2.LINE_AA)
+```
+Rear view GUI uses polygons as indicators for close proximity.
+
+There are 4 displays which present all the data running through the CAN-BUS.
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100251.png)
+1st screen: System Diagram
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-26%20170645.png)
+2nd screen: Flow Diagram
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-26%20171136.png)
+3rd screen: Battery Diagram
+
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100224.png)
+4th screen: Motor Diagram
 
 
 1. Clone this repository:
