@@ -12,6 +12,9 @@ This GitHub repository contains the software for my electric car control system.
 
 ## Overview
 
+![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag5.png)
+
+
 These programs are collectively responsible for:
 
 - **Battery Management:** Monitor and manage the electric car's battery system, including charging, discharging, and maintaining battery health.
@@ -27,6 +30,11 @@ These programs are collectively responsible for:
 - **User Interface:** Provide a user-friendly interface for the driver to see system information, via a large screen.
 
 - **Safety Systems:** Implement safety features like redundancy and system diagnostics.
+
+The five main modules are the Battery system, Motor System, Auxiliary System, Secondary System, and Interface System, which are responsible for battery regulation, motor control, main data display, secondary data display, and a centralized monitor respectively.
+
+![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag4.png)
+
 
 ## Battery Management
 
@@ -54,7 +62,7 @@ The BatteryECU consists of a set of sensors and drivers that communicate battery
 
 ## Motor Control
 
-The inverter is controlled by an internal 32-bit ARM processor and is externally controlled by another 32-bit ARM processor in the form of RP2040. The internal processor's purpose is simply to regulate the frequency of the 3-phase motor power with data from various sensors. The pedal can transfer the signal directly to the internal processor or to the external processor which regulates the power based on external parameters and displays the data being transferred via CAN-BUS. This system introduces redundancy and allows the car to still function in a degraded state even in the case of complete system failure. 
+The inverter is controlled by an internal 32-bit ARM processor and is externally controlled by another 32-bit ARM processor in the form of RP2040. The internal processor's purpose is simply to regulate the frequency of the 3-phase motor power with data from various sensors. The pedal can transfer the signal directly to the internal processor or to the external processor which regulates the power based on external parameters and displays the data being transferred via CAN-BUS. This system introduces redundancy and allows the car to still function in a degraded state even in the case of complete system failure.
 
 ```
   limit = analogRead(pot); 
@@ -80,56 +88,42 @@ The inverter is controlled by an internal 32-bit ARM processor and is externally
   }
 ```
 
-## Temperature Control
 
-Temperatures are regulated by settings set on the dashboard Auxiliary ECU which are relayed to peripherals via I2c to manage the data and create a PWM signal to control various fans and pumps located around the car to provide adequate cooling.
+## Sensor Data
+
+Data is collected from an array of thermistors, ultrasonic sensors, and ADCs, which is sent over the CAN-BUS to be interpretted by other computers.
 ```
-  Wire1.beginTransmission(0x69);
-  Wire1.write(0xB1);
-  for(int i = 0; i <30;i++){
-    Wire1.write(buf1[i]);
-  }
-  Wire1.endTransmission();
-  Wire1.beginTransmission(0x69);
-  Wire1.write(0xB2);
-  for(int i = 0; i <30;i++){
-    Wire1.write(buf2[i]);
-  }
-  Wire1.endTransmission();
-  Wire1.beginTransmission(0x69);
-  Wire1.write(0xB3);
-  for(int i = 0; i <30;i++){
-    Wire1.write(buf3[i]);
-  }
-  Wire1.endTransmission();
+  SonarSensor(trigPin1, echoPin1);
+  Sensor1 = distance;
+  SonarSensor(trigPin2, echoPin2);
+  Sensor2 = distance;
+  SonarSensor(trigPin3, echoPin3);
+  Sensor3 = distance;
+  SonarSensor(trigPin4, echoPin4);
+  Sensor4 = distance;
+  canMsg1.data[0] = (Sensor2 >> 8) & 0xFF;
+  canMsg1.data[1] = Sensor2 & 0xFF;
+  canMsg1.data[2] = (Sensor1 >> 8) & 0xFF;
+  canMsg1.data[3] = Sensor1 & 0xFF;
+  canMsg1.data[4] = (Sensor4 >> 8) & 0xFF;
+  canMsg1.data[5] = Sensor4 & 0xFF;
+  canMsg1.data[6] = (Sensor3 >> 8) & 0xFF;
+  canMsg1.data[7] = Sensor3 & 0xFF;
+
 ```
-![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag1.png)
+
 ## Auxiliary Systems
 
 Auxiliary systems control the dashboard and its 7 LED displays, 5 LED strips, 6 LCDs, 9 inputs, and the 8 main signal lights and headlights. This system of 1 RP2040, 3 ATMEGA328PBs, 1 ESP32, and 1 ATMEGA2560 communicates with I2c, UART, and CAN bus. 
 
+![alt text](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag3.png)
 
 The RP2040 uses an intermediate Atmega chip through I2c as a buffer as it sends data to update the screens and potentiometer inputs which control the temperatures. 
 
-   ```
-  cont1[1] = map(analogRead(BATPOT),0,1023,100,0); if(cont1[1] < 5)cont1[1] = 0;if(cont1[1] > 95)cont1[1] = 100;
-  cont2[1] = map(analogRead(MOTPOT),0,1023,100,0); if(cont2[1] < 5)cont2[1] = 0;if(cont2[1] > 95)cont2[1] = 100;
-  cont3[1] = map(analogRead(DRVPOT),0,1023,100,0); if(cont3[1] < 5)cont3[1] = 0;if(cont3[1] > 95)cont3[1] = 100;
-  updateRing(gfx ,120,120,80,110,120,420,10,5,10,temp1[1],tempMin,tempMax,temp1[0]);
-  temp1[0] = temp1[1];
-
-  updateRing(gfx2,120,120,80,110,120,420,10,5,10,temp2[1],tempMin,tempMax,temp2[0]);
-  temp2[0] = temp2[1];
-
-  updateRing(gfx3,120,120,80,110,120,420,10,5,10,temp3[1],tempMin,tempMax,temp3[0]);
-  temp3[0] = temp3[1];
-   ``` 
-
-The buffer code decodes the data and sends it to the second core of the RP2040.
-
 The main auxiliary board communicates to a peripheral Atmega through I2c to update the LED strips from decoded CAN-BUS data, while controlling the main digital displays.
 
-```case 0x330:
+```
+case 0x330:
         rpm = (canMsg.data[5] << 8) + canMsg.data[4];
         rpm = rpm*18;
         mph = rpm*3.14*2*60/5280;
@@ -147,19 +141,6 @@ The main auxiliary board communicates to a peripheral Atmega through I2c to upda
 ```
 The LED strip peripheral smooths the LED movement based on the change detected by the sensors.
 
-```
-  for(int i = 1; i < 5;i++){
-    if(future[i] >vals[i])vals[i]+=2;
-    if(future[i] <vals[i])vals[i]-=2;
-  }
-}
-void recv(){
-  uint16_t i = 0;
-  while(Wire.available()>0){
-    future[i++] = Wire.read();
-  }
-}
-```
 ```
   uint8_t x = 3;
   for(int i = 0; i < nums[x];i++){
@@ -204,28 +185,7 @@ The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD t
 
 The ESP32 itself is also responsible for triggering the lights around the cars based on the hand levers and displaying any diagnostic data based on data from the CAN-BUS. 
 
-## Sensor Data
 
-Data is collected from an array of thermistors, ultrasonic sensors, and 
-```
-  SonarSensor(trigPin1, echoPin1);
-  Sensor1 = distance;
-  SonarSensor(trigPin2, echoPin2);
-  Sensor2 = distance;
-  SonarSensor(trigPin3, echoPin3);
-  Sensor3 = distance;
-  SonarSensor(trigPin4, echoPin4);
-  Sensor4 = distance;
-  canMsg1.data[0] = (Sensor2 >> 8) & 0xFF;
-  canMsg1.data[1] = Sensor2 & 0xFF;
-  canMsg1.data[2] = (Sensor1 >> 8) & 0xFF;
-  canMsg1.data[3] = Sensor1 & 0xFF;
-  canMsg1.data[4] = (Sensor4 >> 8) & 0xFF;
-  canMsg1.data[5] = Sensor4 & 0xFF;
-  canMsg1.data[6] = (Sensor3 >> 8) & 0xFF;
-  canMsg1.data[7] = Sensor3 & 0xFF;
-
-```
 
 
 1. Clone this repository:
