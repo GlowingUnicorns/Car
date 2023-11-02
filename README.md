@@ -201,7 +201,7 @@ The GUI's framework is designed on the openCV python library, which uses uploade
 
 Photoshop drawing of the outline ultimately used for the battery diagram.
 
-To conserve processing power, functions are used to create on-screen objects when possible, and the screen is split into seperate arrays which are stacked for the final process.
+To conserve processing power, functions are used to create on-screen objects when possible.
 ```
         if(proximityData[0] < 5.5): COLOR = CYAN
         else: COLOR = WHITE
@@ -222,6 +222,26 @@ To conserve processing power, functions are used to create on-screen objects whe
 ```
 Rear view GUI uses polygons as indicators for close proximity.
 
+Furthermore, the screen is split into seperate arrays which are stacked for the final process, which reduces the amount of times large arrays must be manipulated.
+```
+def bottomBar():
+    botBar = np.zeros([82,1018+3,4],dtype = np.uint8)
+    #botBar.fill(255)
+    botBar[:,:,3] = np.full([botBar.shape[0],botBar.shape[1]],255)
+    botBar = np.hstack((botBar,Cat))
+    for aux in NumAuxPosition:
+        cv2.putText(botBar,str(aux[0]) + ":" + str(NumAux[aux[3]]) + str(aux[2]),aux[1],font,0.5,WHITE,1,cv2.LINE_AA)
+    return botBar
+
+line1 = np.zeros([2,1018+200+3,4],dtype = np.uint8)
+line1.fill(255)
+line1[:,:,3] = np.full([line1.shape[0],line1.shape[1]],255)
+line = np.zeros([height,3,4],dtype = np.uint8)
+line.fill(255)
+line[:,:,3] = np.full([line.shape[0], line.shape[1]],255)
+Gimg = Gbackground
+```
+
 There are 4 displays which present all the data running through the CAN-BUS.
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100251.png)
@@ -236,12 +256,14 @@ There are 4 displays which present all the data running through the CAN-BUS.
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100224.png)
 4th screen: Motor Diagram
 
+In addition, there exists a rearview monitor located on the drivers right, which uses a camera and proximity sensors to indicate distance and visuals. 
 
-1. Clone this repository:
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100224.png)
+Simulation image for rear GUI
 
-   ```bash
-   git clone https://github.com/yourusername/electric-car-control.git
-   cd electric-car-control
+
+
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
