@@ -261,7 +261,7 @@ There are 4 displays which present all the data running through the CAN-BUS.
 
 In addition, there exists a rearview monitor located on the drivers right, which uses a camera and proximity sensors to indicate distance and visuals. 
 
-![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100224.png)
+![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-11-01%20203848.png)
 Simulation image for rear GUI
 
 
