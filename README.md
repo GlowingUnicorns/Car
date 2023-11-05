@@ -10,7 +10,6 @@ This GitHub repository contains the software for my electric car control system.
 - [Sensor Data](#sensor-data)
 - [Auxiliary Systems](#auxiliary-systems)
 - [Interface System](#interface-system)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
