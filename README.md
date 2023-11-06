@@ -36,7 +36,7 @@ These programs are collectively responsible for:
 The five main modules are the Battery system, Motor System, Auxiliary System, Secondary System, and Interface System, which are responsible for battery regulation, motor control, main data display, secondary data display, and a centralized monitor respectively.
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag4.png)
-
+Simplified wiring map.
 
 ## Battery Management
 
@@ -64,7 +64,7 @@ The BatteryECU consists of a set of sensors and drivers that communicate battery
 
 ## Motor Control
 
-The inverter is controlled by an internal 32-bit ARM processor and is externally controlled by another 32-bit ARM processor in the form of RP2040. The internal processor's purpose is simply to regulate the frequency of the 3-phase motor power with data from various sensors. The pedal can transfer the signal directly to the internal processor or to the external processor which regulates the power based on external parameters and displays the data being transferred via CAN-BUS. This system introduces redundancy and allows the car to still function in a degraded state even in the case of complete system failure.
+The inverter is controlled by an internal 32-bit ARM processor and is externally controlled by another 32-bit ARM processor in the form of RP2040. The internal processor's purpose is to regulate the frequency of the 3-phase motor power with data from various sensors like the built-in hall effect sensors or thermistors. The pedal can transfer the signal directly to the internal processor or to the external processor which regulates the power based on external parameters and displays the data on displays (eg: LCDs, OLEDs, LEDs) being transferred via CAN-BUS. This system introduces redundancy and allows the car to function in a degraded state even in the case of complete system failure. 
 
 ```
   limit = analogRead(pot); 
@@ -93,7 +93,7 @@ The inverter is controlled by an internal 32-bit ARM processor and is externally
 
 ## Sensor Data
 
-Data is collected from an array of thermistors, ultrasonic sensors, and ADCs, which is sent over the CAN-BUS to be interpretted by other computers.
+Data is collected from an array of thermistors, ultrasonic sensors, and ADCs, which is sent over the CAN-BUS to be interpreted by other computers.
 ```
   SonarSensor(trigPin1, echoPin1);
   Sensor1 = distance;
@@ -120,9 +120,9 @@ Auxiliary systems control the dashboard and its 7 LED displays, 5 LED strips, 6 
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag6.png)
 
-The RP2040 uses an intermediate Atmega chip through I2c as a buffer as it sends data to update the screens and potentiometer inputs which control the temperatures. 
+The RP2040 uses an intermediate Atmega chip through I2c as a buffer stored as a byte array as it sends data to update the screens with SPI and analog potentiometer inputs which control the temperatures via CAN-BUS with an MCP2515 transceiver. 
 
-The main auxiliary board communicates to a peripheral Atmega through I2c to update the LED strips from decoded CAN-BUS data, while controlling the main digital displays.
+The main auxiliary board communicates to a peripheral Atmega through I2c to update the LED strips from decoded CAN-BUS data, while controlling the main digital displays with various serial-based communication methods. To increase data collection speed, data is received on every clock cycle while a timer correlates to data transmission. 
 
 ```
 case 0x330:
@@ -141,22 +141,12 @@ case 0x330:
         break;
 
 ```
-The LED strip peripheral smooths the LED movement based on the change detected by the sensors.
+Code segment for decoding inverter data. 
 
-```
-  uint8_t x = 3;
-  for(int i = 0; i < nums[x];i++){
-    if(i < map(vals[x],0,255,0,nums[x])){
-      if( i < 3) leds[x][i] = CRGB::Green;
-      else if( i < 6) leds[x][i] = CRGB::Blue;
-      else if( i < 9) leds[x][i] = CRGB::Purple;
-      else leds[x][i] = CRGB::Red;
-    }
-    else leds[x][i] = CRGB::Black;
-  }  
-```
+The LED strip peripheral smooths the LED movement based on the change detected by the sensors by creating a buffer between the displayed and received data, which scales with the distance between the values. 
 
-The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD through Serial Communications, and graphs it as a ring display. 
+The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD through Serial Communications, and graphs it as a ring display. A flexible wire connects the ESP32 to the Atmega and is regulated by an internal boost converter.  
+
 ```
   uint8_t startByte = 0xFF;
   uint8_t stopByte = 0xFE;
@@ -184,9 +174,9 @@ The Atmega 2560 receives data from an ESP32 to display data on a large TFT LCD t
     }
   }
 ```
+Code segment for receiving serial data.
 
-The ESP32 itself is also responsible for triggering the lights around the cars based on the hand levers and displaying any diagnostic data based on data from the CAN-BUS. 
-
+The ESP32 is also responsible for triggering the lights around the cars based on the hand levers and displaying any diagnostic data based on data from the CAN-BUS on an LCD. This outputs digital signals which are directly connected to relays either internal or external which connect the lights to the auxiliary battery. 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag3.png)
 
 ## Interface System
@@ -197,7 +187,7 @@ The main display located in the center of the dashboard is controlled by a Raspb
 
 This system includes systems to prevent data corruption on shutdown by using ultra-capacitors. Data is fed into it by a peripheral Teensy 4.0 that decodes the CAN-BUS and converts it to a buffer sent via SPI. 
 
-The GUI's framework is designed on the openCV python library, which uses uploaded images to modify the displayed BGR array. 
+The GUI's framework is designed on the openCV python library, which uses uploaded images to modify the displayed BGR array. A secondary program holds functions and variables that determine the position of graphical elements to be displayed. Each refresh of the screen corresponds to updated info, which occurs after the RPi which acts as a main SPI communicator requests data from its peripheral secondary device. This data is mapped to a master array to which all data is decrypted and stored as variables that can be displayed or trigger warnings. 
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Diag2.png)
 
@@ -222,9 +212,9 @@ To conserve processing power, functions are used to create on-screen objects whe
         cv2.fillPoly(frame, pts=[pointsRR], color=COLOR)
         cv2.putText(frame,str(proximityData[3]) + "m" ,proximityLocations[3],font,2,COLOR,2,cv2.LINE_AA)
 ```
-Rear view GUI uses polygons as indicators for close proximity.
+Rearview GUI uses polygons as indicators for proximity.
 
-Furthermore, the screen is split into seperate arrays which are stacked for the final process, which reduces the amount of times large arrays must be manipulated.
+Furthermore, the screen is split into separate arrays which are stacked for the final process, which reduces the amount of times large arrays must be manipulated.
 ```
 def bottomBar():
     botBar = np.zeros([82,1018+3,4],dtype = np.uint8)
@@ -244,7 +234,7 @@ line[:,:,3] = np.full([line.shape[0], line.shape[1]],255)
 Gimg = Gbackground
 ```
 
-There are 4 displays which present all the data running through the CAN-BUS.
+4 displays present all the data running through the CAN-BUS. The first gives an overview of the main systems, the second gives a diagram of more specific systems, the third focuses on the battery, and the fourth focuses on traction. 
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100251.png)
 1st screen: System Diagram
@@ -258,12 +248,10 @@ There are 4 displays which present all the data running through the CAN-BUS.
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-10-27%20100224.png)
 4th screen: Motor Diagram
 
-In addition, there exists a rearview monitor located on the drivers right, which uses a camera and proximity sensors to indicate distance and visuals. 
+In addition, there exists a rearview monitor located on the driver's right, which uses a camera and proximity sensors to indicate distance and visuals. The Picamera2 library converts the camera feed into a BGR array which is flipped and displayed with overlays determined by data received from an SPI peripheral in the same way data is harnessed by the main monitor.
 
 ![](https://github.com/GlowingUnicorns/Car/blob/main/Images/Screenshot%202023-11-01%20203848.png)
 Simulation image for rear GUI
-
-
 
 
 ## License
